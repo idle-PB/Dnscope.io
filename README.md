@@ -10,4 +10,4 @@ Binaries will be available for supported platforms
 Currently windows x64 v0.8.4.6b  
 IPV4 only 
 
-Release [https://Dnscope.io/releases/tag/untagged-7088fb97ddc453fcc733]
+Release https://github.com/idle-PB/Dnscope.io/releases/tag/untagged-7088fb97ddc453fcc733
