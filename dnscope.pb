@@ -16,6 +16,8 @@
 
 EnableExplicit 
 
+UsePNGImageDecoder()
+
 #ProgramTitle = "DNScope.io Scope's up! "
 
 #ProgramVersion = "v0.8.4.6b"
@@ -623,27 +625,27 @@ Procedure CBSquintFree(*key,*rec.DNS_Record,*userData)
   
 EndProcedure  
 
-Procedure CBAddBlackList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
-  Protected key.s 
-  If *rec 
-    If *rec\block = -1 
-      key = PeekS(*key,-1,stringtype) 
-      AddGadgetItem(#BlackListGadget,-1,key) 
-    EndIf      
-  EndIf 
-EndProcedure  
+; Procedure CBAddBlackList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
+;   Protected key.s 
+;   If *rec 
+;     If *rec\block = -1 
+;       key = PeekS(*key,-1,stringtype) 
+;       AddGadgetItem(#BlackListGadget,-1,key) 
+;     EndIf      
+;   EndIf 
+; EndProcedure  
 
-Procedure CBAddWhiteList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
-  Protected key.s 
-  
-  If *rec 
-    If *rec\block = 1 
-      key = PeekS(*key,-1,stringtype) 
-      AddGadgetItem(#WhiteListGadget,-1,key) 
-    EndIf      
-  EndIf 
-  
-EndProcedure  
+; Procedure CBAddWhiteList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
+;   Protected key.s 
+;   
+;   If *rec 
+;     If *rec\block = 1 
+;       key = PeekS(*key,-1,stringtype) 
+;       AddGadgetItem(#WhiteListGadget,-1,key) 
+;     EndIf      
+;   EndIf 
+;   
+; EndProcedure  
 
 Procedure CBAddActiveList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
   Protected key.s,out.s  
@@ -1371,9 +1373,9 @@ EndIf
 
 DataSection
   Ico:
-  IncludeBinary "icon00.ico"
+  IncludeBinary "icon0.png"
   Ico1: 
-  IncludeBinary "icon11.ico" 
+  IncludeBinary "icon1.png" 
   F1: 
   IncludeBinary "allbloom.dat"
   F2:
