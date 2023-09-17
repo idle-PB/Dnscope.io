@@ -1,5 +1,5 @@
 # Dnscope.io Get your Scopes Up! 
-## DNScope Scopes up! A local dns fireWall cache 
+## DNScope Scopes up! A local DNS Firewall and Cache 
 
 Accelerate your browsing experience while blocking ads trackers and bad domains. Scopes up filters around ~80% of DNS traffic. It's preloaded with around 3 million domains and provides cache  resolutions in microseconds rather than milliseconds. Blocking or unblocking a dommain is a simple case of select and check/uncheck or drag and drop. 
 
