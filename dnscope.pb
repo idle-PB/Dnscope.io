@@ -16,6 +16,8 @@
 
 EnableExplicit 
 
+UsePNGImageDecoder()
+
 #ProgramTitle = "DNScope.io Scope's up! "
 
 #ProgramVersion = "v0.8.4.6b"
@@ -43,8 +45,31 @@ ImportC ""
   ntohs(v.u)  
   htonl(v.l)  
   ntohl(v.l) 
-  DateUTC(t.i=0) As "time"  
 EndImport   
+
+CompilerSelect #PB_Compiler_OS
+  CompilerCase #PB_OS_Windows
+    CompilerIf #PB_Compiler_32Bit
+      ImportC "" 
+        DateUTC.q(t=0) As "_time"  
+      EndImport 
+    CompilerElse   
+      ImportC "" 
+        DateUTC.q(t=0) As "time"  
+      EndImport 
+    CompilerEndIf
+  CompilerCase #PB_OS_Linux
+    Procedure.q DateUTC()
+      ProcedureReturn time_(#Null)
+    EndProcedure
+  CompilerCase #PB_OS_MacOS
+    ImportC ""
+      CFAbsoluteTimeGetCurrent.d()
+    EndImport
+    Procedure.q DateUTC()
+      ProcedureReturn CFAbsoluteTimeGetCurrent() + Date(2001, 1, 1, 0, 0, 0)
+    EndProcedure
+CompilerEndSelect
 
 Structure DNS_Data 
   a.a[0]  
@@ -101,15 +126,19 @@ Structure DNS_Record
   stat.w
 EndStructure 
 
-Global wsaData.WSADATA 
-Macro MAKEWORD(lb,hb) 
-  (lb << 8 | hb)
-EndMacro   
+CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
+  
+ Global wsaData.WSADATA 
+ Macro MAKEWORD(lb,hb) 
+   (lb << 8 | hb)
+ EndMacro   
 
-#WSAHOST_NOT_FOUND = 11001
-#WSAEREFUSED = 10112
-#WSANO_DATA  =11004
-#WSATRY_AGAIN = 11002
+ #WSAHOST_NOT_FOUND = 11001
+ #WSAEREFUSED = 10112
+ #WSANO_DATA  =11004
+ #WSATRY_AGAIN = 11002
+
+CompilerEndIf 
 
 Enumeration #PB_EventType_FirstCustomValue 
   #DNS_EVENT_ADD
@@ -212,7 +241,6 @@ Structure DNScope
   IPINf.ipinfo 
   adapter.s 
    
-  
   uninstall.i
 EndStructure   
 
@@ -226,10 +254,6 @@ DNScope\IP = "1.1.1.1"
 
 Global NewList fifo.i() 
 DNScope\mutFifo = CreateMutex() 
-
-Macro ElapsedSeconds() 
-  DateUTC()
-EndMacro 
 
 Procedure DNS_Write_Query(IP.s,*len.long) 
   Protected *sa.Ara,pos,ct,st,*out,pos1  
@@ -331,7 +355,7 @@ Procedure DNS_Read_Query(*query,len.l)
             *rec\ttl = DateUTC() + 86400 
             *rec\type = ntohs(1)          
             *rec\block = -1      ; -1 blocked 0 unset 1 allowed    
-            *rec\time = ElapsedSeconds()+86400
+            *rec\time = DateUTC()+86400
             *rec\stat = -1
             DNScope\squint\Set(0,@out,*rec) 
             DNScope\DenyCount + 1 
@@ -470,7 +494,7 @@ Procedure DNS_Read_Answer(*msg,mlen)
           PostEvent(#DNS_EVENT_ADD_LOG,0,0,0,*rec)         
           ProcedureReturn *rec 
         ElseIf *rec\block = -1  
-          *rec\ttl = 86400 + ElapsedSeconds() 
+          *rec\ttl = 86400 + DateUTC() 
           *rec\ipv4 = adr
           *rec\time = ElapsedMilliseconds()+30000        
           PostEvent(#DNS_EVENT_ADD_LOG,0,0,0,*rec)     
@@ -620,28 +644,6 @@ Procedure CBSquintFree(*key,*rec.DNS_Record,*userData)
       FreeMemory(*rec) 
     EndIf 
   EndIf   
-  
-EndProcedure  
-
-Procedure CBAddBlackList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
-  Protected key.s 
-  If *rec 
-    If *rec\block = -1 
-      key = PeekS(*key,-1,stringtype) 
-      AddGadgetItem(#BlackListGadget,-1,key) 
-    EndIf      
-  EndIf 
-EndProcedure  
-
-Procedure CBAddWhiteList(*key,*rec.DNS_Record,stringtype=#PB_UTF8)   
-  Protected key.s 
-  
-  If *rec 
-    If *rec\block = 1 
-      key = PeekS(*key,-1,stringtype) 
-      AddGadgetItem(#WhiteListGadget,-1,key) 
-    EndIf      
-  EndIf 
   
 EndProcedure  
 
@@ -909,9 +911,14 @@ Procedure Load()
 EndProcedure   
 
 Procedure.s GetMS(date) 
+  CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
   Protected st.SYSTEMTIME 
   GetSystemTime_(@st.SYSTEMTIME) 
   ProcedureReturn Str(st\wMilliseconds) 
+CompilerElse 
+  ProcedureReturn  
+  CompilerEndIf 
+  
 EndProcedure 
 
 Procedure AddToDataGrid(*rec.DNS_Record) 
@@ -1050,11 +1057,21 @@ EndProcedure
 Procedure NetworkThread(void) 
   
   Protected v4,v6,client 
-    
-  V4 = CreateNetworkServer(-1,53,#PB_Network_UDP|#PB_Network_IPv4,DNScope\IPINf\IPAddress)
+  
+  CompilerIf #PB_Compiler_OS <> #PB_OS_Windows  
+    PrintN("trying to start server on " + DNScope\IPINf\IPAddress) 
+  CompilerEndIf 
+  
+  V4 = CreateNetworkServer(#PB_Any,53,#PB_Network_UDP|#PB_Network_IPv4,DNScope\IPINf\IPAddress)
  ;v6 = CreateNetworkServer(-1,53,#PB_Network_UDP|#PB_Network_IPv6,DNSinfoList()\Name) 
   
   If v4 
+    
+    CompilerIf #PB_Compiler_OS <> #PB_OS_Windows  
+      PrintN("Started Server ")
+    CompilerEndIf 
+    
+    
     
     Repeat
       
@@ -1075,31 +1092,40 @@ Procedure NetworkThread(void)
   
 EndProcedure 
 
-Global wsaData.WSADATA 
-WSAStartup_(MAKEWORD(2, 2), @wsaData);
-
-Procedure GetIPAddress(host.s)
-  Protected *rs.HOSTENT
-  Protected *ahost = Ascii(host) 
-  Protected adr,err 
+CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
+  Global wsaData.WSADATA 
+  WSAStartup_(MAKEWORD(2, 2), @wsaData);
   
-  *rs = gethostbyname_(*ahost);
-   
-  FreeMemory(*ahost) 
-  If *rs <> 0   
-    err = WSAGetLastError_()
-    If err = #WSAHOST_NOT_FOUND
-      ProcedureReturn 0 
-    ElseIf err =  #WSAEREFUSED
-      ProcedureReturn 0 
+  Procedure GetIPAddress(host.s)
+    Protected *rs.HOSTENT
+    Protected *ahost = Ascii(host) 
+    Protected adr,err 
+    
+    *rs = gethostbyname_(*ahost);
+    
+    FreeMemory(*ahost) 
+    If *rs <> 0   
+      err = WSAGetLastError_()
+      If err = #WSAHOST_NOT_FOUND
+        ProcedureReturn 0 
+      ElseIf err =  #WSAEREFUSED
+        ProcedureReturn 0 
+      Else 
+        ProcedureReturn 1 
+      EndIf   
     Else 
-      ProcedureReturn 1 
-    EndIf   
-  Else 
-    err = WSAGetLastError_()
-  EndIf     
+      err = WSAGetLastError_()
+    EndIf     
+    
+  EndProcedure 
   
-EndProcedure 
+CompilerElse 
+  
+  Procedure GetIPAddress(host.s) 
+            
+  EndProcedure   
+  
+CompilerEndIf  
 
 Procedure Dequeue(void) 
   
@@ -1129,7 +1155,11 @@ Procedure Dequeue(void)
   Until DNScope\quit    
   
 EndProcedure   
- 
+
+CompilerIf #PB_Compiler_OS <> #PB_OS_Windows  
+  OpenConsole()
+CompilerEndIf 
+
 FlushDNS() 
 load() 
 
@@ -1254,9 +1284,15 @@ If OpenWindow(0, DNScope\win\windowX, DNScope\win\windowY, DNScope\win\w, DNScop
         DNScope\quit = 1 
       Case #DNS_EVENT_ADD_ACTIVE 
         StatusBarText(#MainStatusBar,0, "Blocked " + Str(DNScope\blockcount))
+        CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
         StatusBarText(#MainStatusBar,1, "DNS on " + DNSinfoList()\Name + " : " + DNScope\IP)
+        CompilerElse 
+        StatusBarText(#MainStatusBar,1, "DNS on " + DNScope\IPINf\IPAddress : " + DNScope\IP)  
+        CompilerEndIf   
         StatusBarText(#MainStatusBar,2, "Allowed " + Str(DNScope\AllowCount)) 
         StatusBarText(#MainStatusBar,3, "Denied " + Str(DNScope\DenyCount)) 
+              
+        
         ChangeSysTrayIcon(0,ImageID(DNScope\win\iconstop)) 
         AddToDataGrid(DNScope\rec) 
         
@@ -1371,9 +1407,9 @@ EndIf
 
 DataSection
   Ico:
-  IncludeBinary "icon00.ico"
+  IncludeBinary "icon0.png"
   Ico1: 
-  IncludeBinary "icon11.ico" 
+  IncludeBinary "icon1.png" 
   F1: 
   IncludeBinary "allbloom.dat"
   F2:

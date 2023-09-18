@@ -100,6 +100,17 @@ Procedure ShellLinkAddtoStartMenu(prog.s)
   Debug Tpath 
 EndProcedure 
 
+CompilerElse 
+  
+  Procedure ShellLinkAddtoDesktop(prog.s) 
+    
+  EndProcedure 
+  
+  Procedure ShellLinkAddtoStartMenu(prog.s) 
+    
+  EndProcedure   
+ 
+ 
 CompilerEndIf  
 
 ; IDE Options = PureBasic 6.01 LTS beta 1 (Windows - x64)
