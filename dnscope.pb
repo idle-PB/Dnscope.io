@@ -103,10 +103,12 @@ Structure DNS_Record
   stat.w
 EndStructure 
 
+CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
 Global wsaData.WSADATA 
 Macro MAKEWORD(lb,hb) 
   (lb << 8 | hb)
 EndMacro   
+CompilerEndIf 
 
 #WSAHOST_NOT_FOUND = 11001
 #WSAEREFUSED = 10112
@@ -911,9 +913,14 @@ Procedure Load()
 EndProcedure   
 
 Procedure.s GetMS(date) 
+  CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
   Protected st.SYSTEMTIME 
   GetSystemTime_(@st.SYSTEMTIME) 
   ProcedureReturn Str(st\wMilliseconds) 
+CompilerElse 
+  ProcedureReturn "" 
+  CompilerEndIf 
+  
 EndProcedure 
 
 Procedure AddToDataGrid(*rec.DNS_Record) 
@@ -1077,31 +1084,40 @@ Procedure NetworkThread(void)
   
 EndProcedure 
 
-Global wsaData.WSADATA 
-WSAStartup_(MAKEWORD(2, 2), @wsaData);
-
-Procedure GetIPAddress(host.s)
-  Protected *rs.HOSTENT
-  Protected *ahost = Ascii(host) 
-  Protected adr,err 
+CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
+  Global wsaData.WSADATA 
+  WSAStartup_(MAKEWORD(2, 2), @wsaData);
   
-  *rs = gethostbyname_(*ahost);
-   
-  FreeMemory(*ahost) 
-  If *rs <> 0   
-    err = WSAGetLastError_()
-    If err = #WSAHOST_NOT_FOUND
-      ProcedureReturn 0 
-    ElseIf err =  #WSAEREFUSED
-      ProcedureReturn 0 
+  Procedure GetIPAddress(host.s)
+    Protected *rs.HOSTENT
+    Protected *ahost = Ascii(host) 
+    Protected adr,err 
+    
+    *rs = gethostbyname_(*ahost);
+    
+    FreeMemory(*ahost) 
+    If *rs <> 0   
+      err = WSAGetLastError_()
+      If err = #WSAHOST_NOT_FOUND
+        ProcedureReturn 0 
+      ElseIf err =  #WSAEREFUSED
+        ProcedureReturn 0 
+      Else 
+        ProcedureReturn 1 
+      EndIf   
     Else 
-      ProcedureReturn 1 
-    EndIf   
-  Else 
-    err = WSAGetLastError_()
-  EndIf     
+      err = WSAGetLastError_()
+    EndIf     
+    
+  EndProcedure 
   
-EndProcedure 
+CompilerElse 
+  
+  Procedure GetIPAddress(host.s) 
+            
+  EndProcedure   
+  
+CompilerEndIf  
 
 Procedure Dequeue(void) 
   
@@ -1256,9 +1272,15 @@ If OpenWindow(0, DNScope\win\windowX, DNScope\win\windowY, DNScope\win\w, DNScop
         DNScope\quit = 1 
       Case #DNS_EVENT_ADD_ACTIVE 
         StatusBarText(#MainStatusBar,0, "Blocked " + Str(DNScope\blockcount))
+        CompilerIf #PB_Compiler_OS = #PB_OS_Windows 
         StatusBarText(#MainStatusBar,1, "DNS on " + DNSinfoList()\Name + " : " + DNScope\IP)
+        CompilerElse 
+        StatusBarText(#MainStatusBar,1, "DNS on " + "127.0.0.1" : " + DNScope\IP)  
+        CompilerEndIf   
         StatusBarText(#MainStatusBar,2, "Allowed " + Str(DNScope\AllowCount)) 
         StatusBarText(#MainStatusBar,3, "Denied " + Str(DNScope\DenyCount)) 
+              
+        
         ChangeSysTrayIcon(0,ImageID(DNScope\win\iconstop)) 
         AddToDataGrid(DNScope\rec) 
         
