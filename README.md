@@ -1,6 +1,7 @@
 ![DNScope Version][badge DNScope]&nbsp;&nbsp;
 ![PureBasic Version][badge purebasic]&nbsp;&nbsp;
 [![MIT License][badge license]](./LICENSE)&nbsp;&nbsp;
+![GitHub all releases](https://img.shields.io/github/downloads/idle-PB/Dnscope.io/total)
 
 # Dnscope.io Get your Scopes Up! 
 ## DNScope Scopes up! A local DNS Firewall and Cache 
